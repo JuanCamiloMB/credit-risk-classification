@@ -5,7 +5,7 @@ import joblib
 import pandas as pd
 import streamlit as st
 
-from config import DROP_COLS, TARGET, DEFAULT_DATA_PATH, MODEL_PATHS
+from config import DEFAULT_DATA_PATH, DROP_COLS, MODEL_PATHS, TARGET
 
 
 @st.cache_resource(show_spinner="Cargando modelos…")
@@ -39,10 +39,7 @@ def load_and_preprocess(
     with OneHotEncoder for nominal columns, so we keep categoricals as
     plain strings rather than label-encoding them here.
     """
-    if use_default:
-        raw = pd.read_parquet(DEFAULT_DATA_PATH)
-    else:
-        raw = pd.read_csv(file_obj)
+    raw = pd.read_parquet(DEFAULT_DATA_PATH) if use_default else pd.read_csv(file_obj)
 
     df = raw.copy()
     df.drop(columns=[c for c in DROP_COLS if c in df.columns], inplace=True)

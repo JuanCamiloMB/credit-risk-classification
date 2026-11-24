@@ -1,3 +1,45 @@
+# ── Entornos y dependencias ──────────────────
 .venv/
-data/raw/*.csv
+venv/
+env/
+
+# ── Python ───────────────────────────────────
 **/__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# ── Calidad y pruebas ────────────────────────
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+junit*.xml
+
+# ── Notebooks / ML ───────────────────────────
+.ipynb_checkpoints/
+catboost_info/
+mlruns/
+*.log
+
+# ── Exportaciones generadas (fuente de verdad: uv.lock) ──
+requirements*.txt
+
+# ── Datos crudos (no se versionan) ───────────
+data/raw/*.csv
+
+# ── Secretos y configuración local ───────────
+.env
+.env.*
+!.env.example
+.streamlit/secrets.toml
+
+# ── Sistema operativo / editores ─────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

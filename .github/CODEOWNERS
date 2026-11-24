@@ -1,0 +1,8 @@
+# Revisores obligatorios por defecto (requiere la regla "Require review from
+# Code Owners" en la protección de la rama main).
+*                   @JuanCamiloMB
+
+# Artefactos que afectan directamente lo que se despliega.
+/models/            @JuanCamiloMB
+/Dockerfile         @JuanCamiloMB
+/.github/           @JuanCamiloMB

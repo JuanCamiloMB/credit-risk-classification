@@ -1,0 +1,54 @@
+# Hooks locales (pre-commit y commit-msg). CI ejecuta los mismos con --all-files,
+# así que lo que pasa en tu máquina pasa en el pipeline.
+#   Instalar una vez:   make setup   (o: uv run pre-commit install)
+#   Ejecutar a mano:    make lint
+# Las revisiones van fijadas por SHA; actualizar con: uv run pre-commit autoupdate --freeze
+default_install_hook_types: [pre-commit, commit-msg]
+default_stages: [pre-commit]
+exclude: ^(data|models|notebooks)/
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c  # frozen: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+        args: [--fix=lf]
+      - id: check-yaml
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: detect-private-key
+      - id: check-added-large-files
+        args: [--maxkb=5000]
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: 9026c9127e153371d7a78dfcb0c45ae2046a3d10  # frozen: v0.17.6
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
+
+  # uv.lock es la única fuente de verdad de dependencias: falla si quedó
+  # desactualizado respecto a pyproject.toml.
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    rev: 00eaed0068329eb6ca6bcb8de7b46c372d8d1c19  # frozen: 0.13.9
+    hooks:
+      - id: uv-lock
+
+  # Valida la sintaxis de los workflows de GitHub Actions y de Dependabot.
+  - repo: https://github.com/python-jsonschema/check-jsonschema
+    rev: a76b92851fc9eede9f9bc4073eb55202f34eb0df  # frozen: 0.39.0
+    hooks:
+      - id: check-github-workflows
+      - id: check-dependabot
+
+  # Mensajes de commit con Conventional Commits (feat:, fix:, ci:, ...).
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: 33b50eb042bee26eac0ee96ad84aa9c1b4dccdd8  # frozen: v4.5.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args: [feat, fix, model, refactor, perf, docs, test, ci, build, chore, style, revert]

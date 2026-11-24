@@ -41,7 +41,7 @@ with st.sidebar:
         help="El dataset por defecto se carga desde el directorio `data/` del repositorio",
     )
 
-    uploaded    = None
+    uploaded = None
     use_default = data_source == "📁 Usar dataset por defecto"
 
     if use_default:
@@ -61,10 +61,16 @@ with st.sidebar:
 
     st.markdown("### 🔧 Configuración de Evaluación")
     test_size = st.slider("Tamaño del conjunto de prueba", 0.10, 0.40, 0.20, 0.05)
-    threshold = st.slider("Umbral de decisión", 0.10, 0.90, 0.50, 0.05,
-                          help="Umbral de probabilidad para clasificar como Default. "
-                               "Bajarlo aumenta el Recall (detecta más defaults) a costa "
-                               "de más falsos positivos.")
+    threshold = st.slider(
+        "Umbral de decisión",
+        0.10,
+        0.90,
+        0.50,
+        0.05,
+        help="Umbral de probabilidad para clasificar como Default. "
+        "Bajarlo aumenta el Recall (detecta más defaults) a costa "
+        "de más falsos positivos.",
+    )
 
     st.markdown("---")
     st.markdown(
@@ -77,20 +83,24 @@ with st.sidebar:
 # ─────────────────────────────────────────────
 # LOAD DATA & MODELS
 # ─────────────────────────────────────────────
-loaded_models    = load_models()
+loaded_models = load_models()
 raw_df, clean_df = load_and_preprocess(uploaded, use_default=use_default)
 
 X = clean_df.drop(columns=[TARGET], errors="ignore")
 y = clean_df[TARGET].astype(int)
 
 _, X_test, _, y_test = train_test_split(
-    X, y, test_size=test_size, random_state=42, stratify=y,
+    X,
+    y,
+    test_size=test_size,
+    random_state=42,
+    stratify=y,
 )
 
-probs       = compute_probs(loaded_models, X_test, tuple(loaded_models.keys()))
-results     = evaluate_all(probs, y_test, threshold)
+probs = compute_probs(loaded_models, X_test, tuple(loaded_models.keys()))
+results = evaluate_all(probs, y_test, threshold)
 model_names = list(results.keys())
-feat_names  = X.columns.tolist()
+feat_names = X.columns.tolist()
 
 # Features the saved sklearn pipelines actually consume (union across models).
 # Used by the Live Predictor so we don't ask the user for inputs the model ignores.
@@ -119,12 +129,14 @@ st.markdown("---")
 # ─────────────────────────────────────────────
 # TABS
 # ─────────────────────────────────────────────
-tab1, tab2, tab3, tab4 = st.tabs([
-    "📊 Resumen del Dataset",
-    "🔍 Análisis Exploratorio",
-    "🤖 Resultados de los Modelos",
-    "🎯 Predictor en Vivo",
-])
+tab1, tab2, tab3, tab4 = st.tabs(
+    [
+        "📊 Resumen del Dataset",
+        "🔍 Análisis Exploratorio",
+        "🤖 Resultados de los Modelos",
+        "🎯 Predictor en Vivo",
+    ]
+)
 
 with tab1:
     overview.render(raw_df, clean_df)

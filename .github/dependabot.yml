@@ -1,0 +1,50 @@
+# Actualizaciones automáticas de dependencias. Cada PR de Dependabot pasa por
+# el CI completo (tests, quality gate de modelos y escaneo de la imagen).
+version: 2
+
+updates:
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: build
+      include: scope
+    labels: [dependencies]
+    groups:
+      python-minor-patch:
+        update-types: [minor, patch]
+    ignore:
+      # Fijados a la versión con la que se serializaron los modelos.
+      # Se actualizan solo junto con un reentrenamiento (ver CONTRIBUTING.md).
+      - dependency-name: scikit-learn
+      - dependency-name: lightgbm
+      - dependency-name: pycaret
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: ci
+    labels: [dependencies, ci]
+    groups:
+      github-actions:
+        patterns: ["*"]
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: build
+      include: scope
+    labels: [dependencies, docker]
+    ignore:
+      # Mantener Python 3.11 (requires-python); solo parches y digests.
+      - dependency-name: python
+        update-types: [version-update:semver-major, version-update:semver-minor]

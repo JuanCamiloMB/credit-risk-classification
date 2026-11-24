@@ -1,0 +1,16 @@
+name: Propuesta de mejora
+description: Nueva funcionalidad o mejora del modelo / la app
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problema
+    attributes:
+      label: Problema o necesidad
+    validations:
+      required: true
+  - type: textarea
+    id: propuesta
+    attributes:
+      label: Propuesta
+    validations:
+      required: true

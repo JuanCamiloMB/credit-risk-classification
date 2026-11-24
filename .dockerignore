@@ -1,0 +1,29 @@
+# Contexto de build mínimo: el Dockerfile copia archivos explícitamente,
+# esto evita enviar al daemon lo que nunca debe llegar a la imagen.
+.git
+.github
+.venv
+**/__pycache__
+**/*.py[cod]
+.pytest_cache
+.ruff_cache
+.coverage
+coverage.xml
+htmlcov
+.env
+.env.*
+*.log
+
+notebooks
+tests
+docs
+data/raw
+models/*.pkl
+models/lightgbm_tuned_model.joblib
+
+.pre-commit-config.yaml
+.editorconfig
+Makefile
+compose.yaml
+requirements.txt
+*.md
