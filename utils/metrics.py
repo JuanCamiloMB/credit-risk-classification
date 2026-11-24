@@ -1,7 +1,6 @@
 # ─────────────────────────────────────────────
 # utils/metrics.py — evaluation helpers
 # ─────────────────────────────────────────────
-import numpy as np
 import streamlit as st
 from sklearn.metrics import (
     accuracy_score,
@@ -19,10 +18,10 @@ def clf_metrics(y_true, y_pred, y_prob) -> dict:
     metric the project optimizes for in the training notebooks.
     """
     return {
-        "Exactitud": round(accuracy_score(y_true, y_pred),            4),
-        "Recall":    round(recall_score(y_true, y_pred, zero_division=0), 4),
-        "F1":        round(f1_score(y_true, y_pred, zero_division=0), 4),
-        "ROC-AUC":   round(roc_auc_score(y_true, y_prob),             4),
+        "Exactitud": round(accuracy_score(y_true, y_pred), 4),
+        "Recall": round(recall_score(y_true, y_pred, zero_division=0), 4),
+        "F1": round(f1_score(y_true, y_pred, zero_division=0), 4),
+        "ROC-AUC": round(roc_auc_score(y_true, y_prob), 4),
         "Prec. Prom.": round(average_precision_score(y_true, y_prob), 4),
     }
 
@@ -34,10 +33,7 @@ def compute_probs(_models: dict, X_test, _model_keys: tuple) -> dict:
     `_models` is unhashable (sklearn pipelines) so it's prefixed with `_`
     to skip Streamlit's hashing; `_model_keys` carries the cache key.
     """
-    return {
-        name: _models[name].predict_proba(X_test)[:, 1]
-        for name in _model_keys
-    }
+    return {name: _models[name].predict_proba(X_test)[:, 1] for name in _model_keys}
 
 
 def evaluate_all(probs: dict, y_test, threshold: float) -> dict:
@@ -49,8 +45,8 @@ def evaluate_all(probs: dict, y_test, threshold: float) -> dict:
     for name, y_prob in probs.items():
         y_pred = (y_prob >= threshold).astype(int)
         results[name] = {
-            "y_prob":  y_prob,
-            "y_pred":  y_pred,
+            "y_prob": y_prob,
+            "y_pred": y_pred,
             "metrics": clf_metrics(y_test, y_pred, y_prob),
         }
     return results

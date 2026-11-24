@@ -1,0 +1,167 @@
+# ─────────────────────────────────────────────
+# CI — se ejecuta en cada Pull Request y lo reutiliza el workflow de CD
+# antes de publicar nada. Ningún cambio llega a main sin pasar por aquí.
+#
+#   lint      → pre-commit (ruff, formato, lockfile, YAML/TOML, workflows)
+#   test      → pytest + cobertura + quality gate de los modelos
+#   docker    → build de la imagen, smoke test y escaneo de seguridad (Trivy)
+#   deps      → revisión de dependencias nuevas en el PR (vulnerabilidades/licencias)
+# ─────────────────────────────────────────────
+name: CI
+
+on:
+  pull_request:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  UV_VERSION: "0.13.9"
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  lint:
+    name: Lint y formato
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+        with:
+          version: ${{ env.UV_VERSION }}
+          python-version: ${{ env.PYTHON_VERSION }}
+          enable-cache: true
+
+      - name: Instalar herramientas de desarrollo
+        run: uv sync --locked --no-default-groups --only-group dev
+
+      - name: Cache de entornos de pre-commit
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
+
+      - name: pre-commit
+        run: uv run --no-sync pre-commit run --all-files --show-diff-on-failure
+
+  test:
+    name: Tests y quality gate de modelos
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+        with:
+          version: ${{ env.UV_VERSION }}
+          python-version: ${{ env.PYTHON_VERSION }}
+          enable-cache: true
+
+      - name: Instalar dependencias (runtime + dev)
+        run: uv sync --locked --no-default-groups --group dev
+
+      - name: Ejecutar pruebas
+        run: uv run --no-sync pytest --cov-report=xml --junitxml=junit.xml
+
+      - name: Resumen de cobertura
+        if: ${{ !cancelled() }}
+        run: |
+          {
+            echo "### Cobertura de pruebas"
+            uv run --no-sync coverage report --format=markdown
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publicar reportes
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: test-reports
+          path: |
+            coverage.xml
+            junit.xml
+          retention-days: 14
+
+  docker:
+    name: Imagen Docker (build, smoke test y escaneo)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      IMAGE: credit-risk-classification:ci
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Construir imagen
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          load: true
+          push: false
+          tags: ${{ env.IMAGE }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke test (el contenedor arranca y responde healthy)
+        run: |
+          docker run -d --name app --read-only \
+            --tmpfs /tmp --tmpfs /home/app:uid=10001,gid=10001,mode=0700 \
+            --cap-drop ALL --security-opt no-new-privileges:true \
+            -p 8501:8501 "$IMAGE"
+          for _ in $(seq 1 30); do
+            if curl -fsS http://localhost:8501/_stcore/health; then
+              echo " → la app responde"; exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::La app no respondió en /_stcore/health"
+          docker logs app
+          exit 1
+
+      - name: Escaneo de vulnerabilidades y secretos en la imagen
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          version: v0.76.2
+          scan-type: image
+          image-ref: ${{ env.IMAGE }}
+          scanners: vuln,secret
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "1"
+
+      - name: Escaneo de configuración del Dockerfile
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          version: v0.76.2
+          scan-type: config
+          scan-ref: Dockerfile
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+          skip-setup-trivy: true
+
+  dependency-review:
+    name: Revisión de dependencias
+    if: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/dependency-review-action@bbc44d14a204704ccc493733616cd1e93a0321ec # v5.0.1
+        with:
+          fail-on-severity: high

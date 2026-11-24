@@ -1,0 +1,17 @@
+# Ejecuta la imagen de producción en local, con el mismo endurecimiento
+# recomendado para el despliegue:  docker compose up --build
+services:
+  app:
+    build: .
+    image: credit-risk-classification:local
+    ports:
+      - "8501:8501"
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /home/app:uid=10001,gid=10001,mode=0700
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped

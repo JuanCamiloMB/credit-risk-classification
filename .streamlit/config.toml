@@ -1,0 +1,11 @@
+# Configuración compartida de Streamlit (local y contenedor).
+# Los ajustes exclusivos de producción se inyectan como variables de entorno
+# STREAMLIT_* en el Dockerfile.
+
+[server]
+# Límite de tamaño para los CSV que suben los usuarios (MB).
+maxUploadSize = 50
+enableXsrfProtection = true
+
+[browser]
+gatherUsageStats = false
